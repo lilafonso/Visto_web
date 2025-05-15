@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>Laudos de Vistoria</title>
+    <script src='https://unpkg.com/tesseract.js@v2.1.0/dist/tesseract.min.js'></script>
+
+</head>
+<body>
+    <h1>Laudo de Vistoria</h1>
+    <p>Use as preferências default, carregue o arquivo com as suas preferências ou edite e salve suas preferências:</p>
+    <button id='importarPreferências' onclick="importarPref()" style="padding: 10px 30px; font-size: 1.2em; margin: 5px 0; height: 45px; width: 49%;">Importar Preferências</button>
+    <button id='salvarPreferências' onclick="salvarPref()" style="padding: 10px 30px; font-size: 1.2em; margin: 5px 0; height: 45px; width: 49%;">Salvar Preferências</button>
+
+    <textarea id="dadosBase" name="dadosBase" rows="5"></textarea>
+    
+    <p>Capture uma imagem, abra uma foto ou cole o texto extraído OCR:</p>
+    <button id='captFoto' onclick="capturarFoto()" style="padding: 10px 30px; font-size: 1.2em; margin: 5px 0; height: 45px; width: 49%;">Capturar Foto</button>
+    <button id='abrirFoto' onclick="abrirFoto()" style="padding: 10px 30px; font-size: 1.2em; margin: 5px 0; height: 45px; width: 49%;">Abrir Foto</button>
+
+    <video id="camera" autoplay></video>
+    <canvas id="foto" style="display:none;"></canvas>
+    
+    <label for="textoOCR">Texto a ser processado:</label>
+
+    <textarea id="textoOCR" name="textoOCR" placeholder="Cole aqui ou aguarde o processamento." rows="5"></textarea>
+     
+    <button id='analisarTexto' onclick="analisarTexto()" style="padding: 10px 30px; font-size: 1.2em; margin: 5px 0; width: 100%;">Analisar Texto</button>
+    
+    <textarea id="textoAnalisado" placeholder="Informações processadas." name="textoAnalisado" rows="5"></textarea>
+
+    
+
+    <script>
+        // Carregar dados padrão do arquivo pref.csv
+        window.onload = function() {
+            const dadosBase = document.getElementById('dadosBase');
+            dadosBase.value = 
+`Perito: Leonardo Reis da Silva
+Diretor: José Domingos Moreira das Eiras
+Núcleo: Núcleo de Perícias Criminalísticas de Americana
+Equipe:`;
+        }
+
+        function importarPref() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.txt';
+            
+            input.onchange = function(e) {
+                const arquivo = e.target.files[0];
+                const leitor = new FileReader();
+                
+                leitor.onload = function(evento) {
+                    const dadosBase = document.getElementById('dadosBase');
+                    dadosBase.value = evento.target.result;
+                };
+                
+                leitor.readAsText(arquivo);
+            };
+            
+            input.click();
+        }
+        
+        function salvarPref() {
+            // Garantir que os dados estejam em UTF-8
+            const encoder = new TextEncoder();
+            const decoder = new TextDecoder('utf-8');
+            const dadosUTF8 = encoder.encode(document.getElementById('dadosBase').value);
+            const dadosVerificados = decoder.decode(dadosUTF8);
+            const dadosBase = document.getElementById('dadosBase').value;
+            const blob = new Blob([dadosBase], { type: 'text/txt' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'pref.txt';
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        let video = document.getElementById('camera');
+        let canvas = document.getElementById('foto');
+        
+        let resultado = document.getElementById('resultado');
+        let botaoCaptFoto = document.getElementById('captFoto');
+        let botaoAbreFoto = document.getElementById('abrirFoto');
+
+        // Iniciar câmera
+        // Tentar iniciar com a câmera traseira primeiro
+        navigator.mediaDevices.getUserMedia({
+            video: {
+            facingMode: { exact: "environment" }, //camera traseira;
+            width: { min: 1280, ideal: 1920 },
+            height: { min: 720, ideal: 1080 },
+            zoom: true,
+            advanced: [{
+                exposureMode: "manual",
+                focusMode: "continuous"
+            }]
+            }
+        })
+        .then(stream => {
+            video.srcObject = stream;
+        })
+        .catch(erro => {
+            console.error('Erro ao acessar câmera traseira:', erro);
+            // Se falhar, tenta acessar qualquer câmera disponível
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    video.srcObject = stream;
+                })
+                .catch(erroFallback => {
+                    console.error('Erro ao acessar câmera:', erroFallback);
+                    alert('Não foi possível acessar nenhuma câmera.');
+                });
+        });
+        function abrirFoto() {
+            // Criar input de arquivo oculto
+            let input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            
+            input.onchange = function(e) {
+                let file = e.target.files[0];
+                if (file) {
+                    let reader = new FileReader();
+                    reader.onload = function(event) {
+                        // Criar uma imagem temporária
+                        let img = new Image();
+                        img.onload = function() {
+                            canvas.style.display = 'block';
+                            video.style.display = 'none';
+                            botaoCaptFoto.disabled = true;
+                            botaoAbreFoto.disabled = true;
+
+                            // Configurar dimensões do canvas
+                            canvas.width = img.width;
+                            canvas.height = img.height;
+                            
+                            // Desenhar imagem no canvas
+                            let ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0);
+                            
+                            // Melhorar a imagem para OCR
+                            let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                            let data = imageData.data;
+
+                            // Aumentar DPI para 300
+                            let tempCanvas = document.createElement('canvas');
+                            let scale = 300 / 96; // 96 é o DPI padrão
+                            tempCanvas.width = canvas.width * scale;
+                            tempCanvas.height = canvas.height * scale;
+                            let tempCtx = tempCanvas.getContext('2d');
+                            
+                            // Configurar para melhor qualidade de redimensionamento
+                            tempCtx.imageSmoothingEnabled = true;
+                            tempCtx.imageSmoothingQuality = 'high';
+                            
+                            // Redimensionar a imagem
+                            tempCtx.drawImage(canvas, 0, 0, tempCanvas.width, tempCanvas.height);
+                            
+                            // Copiar de volta para o canvas original
+                            canvas.width = tempCanvas.width;
+                            canvas.height = tempCanvas.height;
+                            ctx.drawImage(tempCanvas, 0, 0);
+                            
+                            // Atualizar o contexto e os dados da imagem
+                            imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                            data = imageData.data;
+
+                            // Converter para escala de cinza e aumentar contraste
+                            for (let i = 0; i < data.length; i += 4) {
+                                let r = data[i];
+                                let g = data[i + 1];
+                                let b = data[i + 2];
+                                
+                                // Converter para escala de cinza
+                                let gray = 0.299 * r + 0.587 * g + 0.114 * b;
+                                
+                                // Aumentar contraste
+                                gray = gray < 128 ? gray * 0.8 : gray * 1.2;
+                                
+                                // Limitar valores entre 0 e 255
+                                gray = Math.min(255, Math.max(0, gray));
+                                
+                                data[i] = data[i + 1] = data[i + 2] = gray;
+                            }
+                            
+                            ctx.putImageData(imageData, 0, 0);
+                            reconhecerTexto();
+                        };
+                        img.src = event.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+            
+            input.click();
+
+        }
+
+        function capturarFoto() {
+            canvas.style.display = 'block';
+            video.style.display = 'none';
+            botaoCaptFoto.disabled = true;
+            botaoAbreFoto.disabled = true;
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            // Melhorar a imagem para OCR
+            let ctx = canvas.getContext('2d');
+            let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            let data = imageData.data;
+            
+
+            // Aumentar DPI para 300
+            let tempCanvas = document.createElement('canvas');
+            let scale = 300 / 96; // 96 é o DPI padrão
+            tempCanvas.width = canvas.width * scale;
+            tempCanvas.height = canvas.height * scale;
+            let tempCtx = tempCanvas.getContext('2d');
+            
+            // Configurar para melhor qualidade de redimensionamento
+            tempCtx.imageSmoothingEnabled = true;
+            tempCtx.imageSmoothingQuality = 'high';
+            
+            // Redimensionar a imagem
+            tempCtx.drawImage(canvas, 0, 0, tempCanvas.width, tempCanvas.height);
+            
+            // Copiar de volta para o canvas original
+            canvas.width = tempCanvas.width;
+            canvas.height = tempCanvas.height;
+            ctx.drawImage(tempCanvas, 0, 0);
+            
+            // Atualizar o contexto e os dados da imagem
+            imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            data = imageData.data;
+            // Converter para escala de cinza e aumentar contraste
+            for (let i = 0; i < data.length; i += 4) {
+                let r = data[i];
+                let g = data[i + 1];
+                let b = data[i + 2];
+                
+                // Converter para escala de cinza
+                let gray = 0.299 * r + 0.587 * g + 0.114 * b;
+                
+                // Aumentar contraste
+                gray = gray < 128 ? gray * 0.8 : gray * 1.2;
+                
+                // Limitar valores entre 0 e 255
+                gray = Math.min(255, Math.max(0, gray));
+                
+                data[i] = gray;
+                data[i + 1] = gray; 
+                data[i + 2] = gray;
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
+
+            reconhecerTexto();
+        }
+
+        function reconhecerTexto() {
+            const resultado = document.getElementById('resultado');
+            const areaTexto = document.getElementById('textoOCR');
+            
+
+            areaTexto.value = 'Processando...';
+
+            Tesseract.recognize(
+                canvas,
+                'por', // Idioma português
+                { logger: m => console.log(m) }
+            ).then(({ data: { text } }) => {
+                areaTexto.value = text;
+                canvas.style.display = 'none';
+                video.style.display = 'block';
+                botaoCaptFoto.disabled = false;
+                botaoAbreFoto.disabled = false;
+            }).catch(erro => {
+                console.error('Erro no reconhecimento:', erro);
+                areaTexto.value = 'Erro no reconhecimento de texto.';
+                canvas.style.display = 'none';
+                video.style.display = 'block';
+                botaoCaptFoto.disabled = false;
+                botaoAbreFoto.disabled = false;
+            });
+
+        }
+        function analisarTexto() {
+            const texto = document.getElementById('textoOCR').value;
+            const textoAnalisado = document.getElementById('textoAnalisado');
+            
+            let naturezaDoExame = '';
+            let placa = '';
+            let chassi = '';
+            
+            // Procurar Natureza do Exame
+            const regexNatureza = /Natureza do Exame:?\s*([^\n]+)/i;
+            const matchNatureza = texto.match(regexNatureza);
+            if (matchNatureza) {
+
+                naturezaDoExame = matchNatureza[1].trim();
+                // Remove eventuais ':' da string
+                naturezaDoExame = naturezaDoExame.replace(/:/g, '');
+            }
+            
+            // Procurar Placa
+            const regexPlaca = /placa:?\s*([A-Z0-9]{7})/i;
+            const matchPlaca = texto.match(regexPlaca);
+            if (matchPlaca) {
+                placa = matchPlaca[1].trim();
+            }
+            
+            // Procurar Chassi
+            // Procurar Chassi com tolerância a erros e espaços
+            const regexChassiFlexivel = /chassi:?\s*([A-Z0-9\s]{15,25})/i; 
+            const matchChassiFlexivel = texto.match(regexChassiFlexivel);
+            if (matchChassiFlexivel) {
+                let chassiEncontrado = matchChassiFlexivel[1].trim();
+                // Se o chassi encontrado não tiver exatamente 17 caracteres, tenta ajustar
+                if (chassiEncontrado.length !== 17) {
+                    // Remove caracteres especiais mantendo apenas letras, números e espaços
+                    chassiEncontrado = chassiEncontrado.replace(/[^A-Z0-9\s]/gi, '');
+                    // Remove espaços extras
+                    chassiEncontrado = chassiEncontrado.replace(/\s+/g, ' ');
+                    // Remove todos os espaços para normalizar
+                    chassiEncontrado = chassiEncontrado.replace(/\s/g, '');
+                    // Pega os primeiros 17 caracteres se tiver mais
+                    if (chassiEncontrado.length > 17) {
+                        chassiEncontrado = chassiEncontrado.substring(0, 17);
+                    }
+                }
+                chassi = chassiEncontrado;
+            }
+            const regexChassi = /chassi:?\s*([A-Z0-9]{17})/i;
+            const matchChassi = texto.match(regexChassi);
+            if (matchChassi) {
+                chassi = matchChassi[1].trim();
+            }
+            // Procurar Tipo
+            
+            let tipo = '';
+            const regexTipo = /tipo:?\s*([^]*?)(?=\s*Ano|$)/i;
+            const matchTipo = texto.match(regexTipo);
+            if (matchTipo) {
+                tipo = matchTipo[1].trim();
+            }
+
+            // Procurar Ano de Fabricação
+            let anoFabricacao = '';
+            const regexAnoFabricacao = /(?:ano(?:\s+de)?\s+fabrica[çc][aã]o|fab\/mod)[:.]?\s*(\d{4})/i;
+            const matchAnoFabricacao = texto.match(regexAnoFabricacao);
+            if (matchAnoFabricacao) {
+                anoFabricacao = matchAnoFabricacao[1].trim();
+            }
+            
+            
+            // Procurar Marca até a palavra Combustível
+            let marca = '';
+            const regexMarca = /marca:?\s*([^]*?)(?=\s*Comb|$)/i;
+            const matchMarca = texto.match(regexMarca);
+            if (matchMarca) {
+                marca = matchMarca[1].trim();
+            }
+            // Procurar Cor como palavra isolada
+
+            let cor = '';
+            const regexCorIsolada = /\b(?:cor|Cor)\b:?\s*([^\n]+)/i;
+            const matchCorIsolada = texto.match(regexCorIsolada);
+            if (matchCorIsolada) {
+                // Pegar apenas a primeira palavra da cor
+                cor = matchCorIsolada[1].trim().split(/\s+/)[0];
+            // Converter cores no masculino para feminino
+            const coresMasculino = {
+                'branco': 'branca',
+                'preto': 'preta', 
+                'vermelho': 'vermelha',
+                'amarelo': 'amarela',
+                'azul': 'azul',
+                'verde': 'verde',
+                'marrom': 'marrom',
+                'cinza': 'cinza',
+                'prata': 'prata',
+                'dourado': 'dourada',
+                'laranja': 'laranja',
+                'roxo': 'roxa',
+                'bege': 'bege'
+            };
+            
+            cor = cor.toLowerCase();
+            if (coresMasculino[cor]) {
+                cor = coresMasculino[cor];
+            }
+            }
+
+
+
+
+            // Procurar Protocolo
+            let protocolo = '';
+            const regexProtocolo = /[Vv]\d{5}\/\d{2}/;
+            const matchProtocolo = texto.match(regexProtocolo);
+            if (matchProtocolo) {
+                protocolo = matchProtocolo[0];
+            }
+
+            // Procurar BO/Boletim
+            let bo = '';
+            let boletim = '';
+            
+            // Procura no formato específico XX0000-0/0000
+            const regexBoFormato = /[A-Z]{2}\d{4}-\d\/\d{4}/;
+            const matchBoFormato = texto.match(regexBoFormato);
+            
+            // Procura genérica por BO ou Boletim
+            const regexBo = /(?:BO|Boletim)[:\s]+([^\n]+)/i;
+            const matchBo = texto.match(regexBo);
+            
+            if (matchBoFormato) {
+                // Se encontrou no formato específico, usa este
+                bo = matchBoFormato[0];
+                boletim = bo;
+            } else if (matchBo) {
+                // Se encontrou no formato genérico, usa este
+                bo = matchBo[1].trim();
+                boletim = bo;
+            }
+
+            // Procurar nome do Delegado
+            let delegado = '';
+            const regexDelegado = /(?:Dr\.|Dra\.|Delegado|Delegada)[.\s]+([^,\n]+)/i;
+
+            const matchDelegado = texto.search(regexDelegado);
+                        
+            if (matchDelegado!=-1) {
+
+                // Procura um nome antes da posição do delegado
+                const textoAntesDoMatch = texto.substring(0, matchDelegado);
+                const linhas = textoAntesDoMatch.split('\n');
+                const ultimaLinha = linhas[linhas.length - 2].trim();
+                delegado = ultimaLinha;
+            }
+            // Procurar Delegacia
+            let delegacia = '';
+            //const regexDelegacia = /(?:\d{3}\s*[-]?\s*)?([^,\n]*Delegacia[^,\n]*)/i;
+            const regexDelegacia = /Delegacia :?\s*([^\n]+)/i;
+            const matchDelegacia = texto.match(regexDelegacia);
+            
+            if (matchDelegacia) {
+                // Pega o grupo capturado que exclui os 3 dígitos iniciais
+                delegacia = matchDelegacia[1].trim().slice(6);
+                console.log(matchDelegacia);
+            }
+            // Montar texto de resultado
+
+            const resultado = `Natureza do Exame: ${naturezaDoExame}
+Tipo: ${tipo}
+Placa: ${placa}
+Chassi: ${chassi}
+Ano de Fabricação: ${anoFabricacao}
+Marca: ${marca}
+Cor: ${cor}
+Protocolo: ${protocolo}
+BO: ${bo}
+Delegacia:${delegacia}
+Delegado:${delegado}`;
+
+            textoAnalisado.value = resultado;
+        }
+    </script>
+
+</body>
+</html>

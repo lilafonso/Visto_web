@@ -1,0 +1,73 @@
+textarea {
+  padding: 10px;
+  max-width: 100%;
+  line-height: 1.5;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  box-shadow: 1px 1px 1px #999;
+  box-sizing: border-box;
+  width: 100%;
+  font-size: 0.8rem;
+  letter-spacing: 1px;
+}
+
+label {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 0.8rem;
+  letter-spacing: 1px;
+  display: inline-block;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.popup {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 20px;
+  border: 1px solid black;
+  box-shadow: 0 0 10px rgba(0,0,0,0.5);
+  min-width: 90%;
+  min-height: 90%;
+}
+
+#resultado {
+    margin-top: 20px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    min-height: 100px;
+}
+#camera, #foto {
+    width: 100%;
+    max-width: 640px;
+    margin: 20px 0;
+}
+
+#image {
+  max-width: 10%;
+  max-height: 10%;
+  transform: scale(5);
+}
+
+#myProgress {
+  width: 100%;
+  background-color: grey;
+}
+
+#myBar {
+  width: 0%;
+  height: 30px;
+  background-color: #04AA6D;
+  text-align: center; /* To center it horizontally (if you want) */
+  line-height: 30px; /* To center it vertically */
+  color: white;
+}
