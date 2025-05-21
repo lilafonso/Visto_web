@@ -96,32 +96,22 @@
         <!-- em caso de operante -->
         <div>
             <input type="checkbox" id="lanternaAnteriorDireita"> <label for="lanternaAnteriorDireita">lanterna anterior direita</label><br>
-            <input type="checkbox" id="lanternaAnteriorEsquerda"> <label for="lanternaAnteriorEsquerda">lanterna anterior esquerda</label><br>
-            
+            <input type="checkbox" id="lanternaAnteriorEsquerda"> <label for="lanternaAnteriorEsquerda">lanterna anterior esquerda</label><br>            
             <input type="checkbox" id="farolDireito"> <label for="farolDireito">farol direito</label><br>
             <input type="checkbox" id="farolEsquerdo"> <label for="farolEsquerdo">farol esquerdo</label><br>
-
             <input type="checkbox" id="farolAltoDireito"> <label for="farolAltoDireito">farol alto direito</label><br>
-            <input type="checkbox" id="farolAltoEsquerdo"> <label for="farolAltoEsquerdo">farol alto esquerdo</label><br>
-            
+            <input type="checkbox" id="farolAltoEsquerdo"> <label for="farolAltoEsquerdo">farol alto esquerdo</label><br>            
             <input type="checkbox" id="setaAnteriorDireita"> <label for="setaAnteriorDireita">seta anterior direita</label><br>
             <input type="checkbox" id="setaAnteriorEsquerda"> <label for="setaAnteriorEsquerda">seta anterior esquerda</label><br>
-
-            <input type="checkbox" id="buzina"> <label for="buzina">buzina</label><br>
-            
-            <input type="checkbox" id="luzRe"> <label for="luzRe">luz de ré</label><br>
-            
+            <input type="checkbox" id="buzina"> <label for="buzina">buzina</label><br>            
+            <input type="checkbox" id="luzRe"> <label for="luzRe">luz de ré</label><br>            
             <input type="checkbox" id="lanternaPosteriorDireita"> <label for="lanternaPosteriorDireita">lanterna posterior direita</label><br>
             <input type="checkbox" id="lanternaPosteriorEsquerda"> <label for="lanternaPosteriorEsquerda">lanterna posterior esquerda</label><br>
-
             <input type="checkbox" id="setaPosteriorDireita"> <label for="setaPosteriorDireita">seta posterior direita</label><br>
-            <input type="checkbox" id="setaPosteriorEsquerda"> <label for="setaPosteriorEsquerda">seta posterior esquerda</label><br>
-            
-            <input type="checkbox" id="freio"> <label for="freio">freio</label><br>
-            
+            <input type="checkbox" id="setaPosteriorEsquerda"> <label for="setaPosteriorEsquerda">seta posterior esquerda</label><br>            
+            <input type="checkbox" id="freio"> <label for="freio">freio</label><br>            
             <input type="checkbox" id="direcao"> <label for="direcao">direção</label><br>
             <input type="checkbox" id="airbags"> <label for="airbags">airbags</label><br>
-
             <input type="checkbox" id="cintoMotorista"> <label for="cintoMotorista">cinto do motorista</label><br>
             <input type="checkbox" id="cintoPassageiro"> <label for="cintoPassageiro">cinto do passageiro</label><br>
             <input type="checkbox" id="cintoTraseiroEsquerdo"> <label for="cintoTraseiroEsquerdo">cinto traseiro esquerdo</label><br>
@@ -611,8 +601,7 @@
                 gray = gray < 128 ? gray * 0.8 : gray * 1.2;
                 
                 // Limitar valores entre 0 e 255
-                gray = Math.min(255, Math.max(0, gray));
-                
+                gray = Math.min(255, Math.max(0, gray));                
                 data[i] = gray;
                 data[i + 1] = gray; 
                 data[i + 2] = gray;
@@ -999,11 +988,11 @@
                 formatIdentificacao.push(4);
             }
             if (dadosGerais.bo && dadosGerais.bo.trim() !== "") {
-                infoIdentificacao.push("BOLETIM DE OCORRÊNCIA Nº: " + dadosGerais.bo.trim());
+                infoIdentificacao.push("B.O Nº: " + dadosGerais.bo.trim());
                 formatIdentificacao.push(4);
             }
             if (dadosGerais.delegacia && dadosGerais.delegacia.trim() !== "") {
-                infoIdentificacao.push("DELEGACIA: " + dadosGerais.delegacia.trim());
+                infoIdentificacao.push(dadosGerais.delegacia.trim());
                 formatIdentificacao.push(4);
             }
 
@@ -1024,7 +1013,7 @@
             }
             
             let dataPreambulo = 	// Renomeado para evitar conflito com 'data' usado no OCR
-			'\tEm '+ day + " de "+mesExtenso[currentDate.getMonth()]+" de "+currentDate.getFullYear() + (dadosGerais.Equipe!=""? ', na '+dadosGerais.Equipe: "") + (dadosGerais.Nucleo!=""? ', no '+dadosGerais.Nucleo: "")+', do Instituto de Criminalística, da Superintendência da Polícia Técnico-Científica, da Secretaria de Segurança Pública do Estado de São Paulo, em conformidade com o disposto no Decreto-Lei n.º 3.689/41, o Diretor deste instituto '+ dadosGerais.Diretor+' designou a Perita Criminal '+(dadosGerais.Perito!=""? dadosGerais.Perito: "signatário") +' para proceder a este exame pericial, em atendimento à requisição da autoridade de polícia judiciária'+ (dadosGerais.delegacia!=""? " da "+dadosGerais.delegacia : "") + (dadosGerais.delegado!=""? ', Dr(a). '+dadosGerais.delegado+'.': ".");
+			'\tEm '+ day + " de "+mesExtenso[currentDate.getMonth()]+" de "+currentDate.getFullYear() + (dadosGerais.Equipe!=""? ', na '+dadosGerais.Equipe: "") + (dadosGerais.Nucleo!=""? ', no '+dadosGerais.Nucleo: "")+', do Instituto de Criminalística, da Superintendência da Polícia Técnico-Científica, da Secretaria de Segurança Pública do Estado de São Paulo, em conformidade com o disposto no Decreto-Lei n.º 3.689/41, o Diretor deste instituto '+ dadosGerais.Diretor+'designou a Perita Criminal '+(dadosGerais.Perito!=""? dadosGerais.Perito: "signatário") +' para proceder a este exame pericial, em atendimento à requisição da autoridade de polícia judiciária'+ (dadosGerais.delegacia!=""? " da "+dadosGerais.delegacia : "") + (dadosGerais.delegado!=""? ', Dr(a). '+dadosGerais.delegado+'.': ".");
             
             // Adiciona o preâmbulo
             aL.push(dataPreambulo);
@@ -1321,6 +1310,11 @@
                                             paragraph: {                                                
                                                 indent: { left: docx.convertInchesToTwip(1), hanging: docx.convertInchesToTwip(0.68) },
                                             },
+					    run: {
+                				font: "Arial",
+                				size: 26, // 13 pt
+                				bold: true,
+            				    },
                                         },
                                     },
                                     {
